@@ -1,0 +1,16 @@
+{
+  "name": "builder-gps",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI guide through Agentic AI Build Week — goal-driven 5-day path planner with live reroute.",
+  "scripts": {
+    "dev": "pnpm --filter @builder-gps/web dev",
+    "dev:api": "cd apps/api && ./scripts/dev.sh",
+    "build": "pnpm --filter @builder-gps/web build",
+    "lint": "pnpm --filter @builder-gps/web lint"
+  },
+  "packageManager": "pnpm@9.0.0",
+  "engines": {
+    "node": ">=20"
+  }
+}
