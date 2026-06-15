@@ -21,8 +21,9 @@ Plus:
 ## Quickstart
 
 ```bash
-# 1. Env — single root .env, both apps read from it
-cp .env.example .env                         # then paste GROQ_API_KEY
+# 1. Env — each app has its own .env, co-located
+cp apps/api/.env.example apps/api/.env       # paste GROQ_API_KEY here
+cp apps/web/.env.example apps/web/.env.local # optional CTA URLs
 # Free Groq key (1 min): https://console.groq.com/keys
 
 # 2. Backend
@@ -72,7 +73,9 @@ builder-gps/
 │   │   └── lib/
 │   │       ├── demo-paths/        Inlined sample personas
 │   │       └── store.ts           Zustand
+│   │   └── .env.example           Frontend NEXT_PUBLIC_* vars
 │   ├── api/         Python FastAPI backend
+│   │   ├── .env.example           Backend env (GROQ_API_KEY, CORS, ...)
 │   │   └── app/
 │   │       ├── routes/            sessions, builder, path
 │   │       ├── services/          decompose_goal, compute_path, path_diff, ical_export
@@ -80,12 +83,13 @@ builder-gps/
 │   │       ├── storage/           SQLite store
 │   │       └── data/sessions.json AABW catalog (real + mock)
 │   └── mcp/         Builder GPS MCP server (Python)
+│       ├── .env.example           MCP env reference (set in AI client config)
 │       └── builder_gps_mcp/
 │           ├── server.py          FastMCP entrypoint + 4 tools
 │           └── api_client.py      httpx wrapper, cookie jar auth
 ├── packages/
 │   └── shared/      TypeScript types mirroring Pydantic schemas
-└── .env.example     Single root env for both apps
+└── .env.example     Index pointing to per-app envs (no shared env anymore)
 ```
 
 ## API surface

@@ -9,9 +9,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    # Single root .env at builder-gps/.env (three levels up from app/).
+    # apps/api/.env — co-located with this app (two levels up from app/).
     model_config = SettingsConfigDict(
-        env_file=str(Path(__file__).resolve().parents[3] / ".env"),
+        env_file=str(Path(__file__).resolve().parents[1] / ".env"),
         env_file_encoding="utf-8",
         extra="ignore",
         protected_namespaces=("settings_",),

@@ -195,7 +195,7 @@ export function BuilderForm() {
           <div className="font-semibold">Couldn&rsquo;t plan your path.</div>
           <div className="mt-1 text-xs text-red-300/80">{serverError}</div>
           <div className="mt-2 text-xs text-red-300/60">
-            Make sure GROQ_API_KEY is set in builder-gps/.env, then restart
+            Make sure GROQ_API_KEY is set in apps/api/.env, then restart
             uvicorn.
           </div>
         </div>

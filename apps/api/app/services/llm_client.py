@@ -37,7 +37,8 @@ def _client() -> Groq:
     settings = get_settings()
     if not settings.groq_api_key:
         raise LLMError(
-            "GROQ_API_KEY is not set. Add it to builder-gps/.env. "
+            "GROQ_API_KEY is not set. Add it to apps/api/.env "
+            "(see apps/api/.env.example). "
             "Get a free key at https://console.groq.com/keys."
         )
     return Groq(api_key=settings.groq_api_key)
