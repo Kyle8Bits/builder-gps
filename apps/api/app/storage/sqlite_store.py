@@ -60,7 +60,12 @@ def _db_path() -> Path:
 
 
 def _conn() -> sqlite3.Connection:
-    conn = sqlite3.connect(_db_path(), check_same_thread=False)
+    path = _db_path()
+    # Ensure the parent dir exists. Without this, an absolute SQLITE_PATH
+    # like /data/builder_gps.db crashes startup when the Railway volume
+    # hasn't been mounted yet (or on first deploy before the mount lands).
+    path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(path, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
 
