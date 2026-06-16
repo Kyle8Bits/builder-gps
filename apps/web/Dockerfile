@@ -29,9 +29,10 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
 # Pull the resolved node_modules from deps.
+# packages/shared has no runtime deps of its own, so pnpm doesn't create
+# a node_modules folder there — only copy the ones that exist.
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
-COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
 
 # Now the source.
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
