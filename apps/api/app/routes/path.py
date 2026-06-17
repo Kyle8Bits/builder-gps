@@ -4,7 +4,7 @@ POST /sessions/{id}/mark    — record attended/skipped/blocked, recompute, retu
                               updated path + diff.
 GET  /path                  — cookie-auth: current builder's PathResponse JSON.
 POST /path/regenerate       — cookie-auth: rerun computePath without
-                              touching history. Useful for MCP "fresh path".
+                              touching history (e.g. "give me a fresh path").
 GET  /path/export.ics       — cookie-auth iCal of the current builder's path.
 GET  /path/{builder_id}.ics — public subscription URL for the same.
 """
@@ -105,7 +105,7 @@ async def mark_session(
 
 
 # ---------------------------------------------------------------------------
-# Read + regenerate (cookie-bound; used by MCP via cookie jar)
+# Read + regenerate (cookie-bound; used by FE for hydration on mount)
 # ---------------------------------------------------------------------------
 
 

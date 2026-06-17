@@ -3,9 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
-import { McpConnectModal } from "@/components/mcp-connect-modal";
 import {
-  API_URL,
   exportIcsUrl,
   fetchBuilderMe,
   subscriptionIcsUrl,
@@ -16,7 +14,6 @@ import { cn } from "@/lib/cn";
  * Lets the builder take their path off the web app:
  *  - one-shot download (.ics into Calendar)
  *  - subscribe URL (live updates)
- *  - reveals builder_id for the MCP config
  */
 export function CalendarExportPanel() {
   const meQuery = useQuery({
@@ -25,7 +22,6 @@ export function CalendarExportPanel() {
     staleTime: 60_000,
   });
   const [copied, setCopied] = useState<"sub" | null>(null);
-  const [mcpOpen, setMcpOpen] = useState(false);
 
   const builderId = meQuery.data?.builder_id;
   const subUrl = builderId ? subscriptionIcsUrl(builderId) : "";
@@ -91,40 +87,6 @@ export function CalendarExportPanel() {
         </button>
       </div>
 
-      <button
-        type="button"
-        onClick={() => builderId && setMcpOpen(true)}
-        disabled={!builderId}
-        className={cn(
-          "group flex items-center justify-between gap-2 rounded-lg border border-neutral-800 bg-neutral-950/60 px-3 py-2.5 text-left transition-colors duration-150",
-          "hover:border-brand-700/60 hover:bg-brand-500/[0.06]",
-          "disabled:cursor-not-allowed disabled:opacity-50"
-        )}
-      >
-        <div className="flex items-center gap-2.5">
-          <span className="flex h-7 w-7 items-center justify-center rounded-md border border-brand-700/40 bg-brand-500/10 text-xs text-brand-300">
-            ⌘
-          </span>
-          <div className="flex flex-col">
-            <span className="text-xs font-semibold text-neutral-200">
-              Connect to your AI editor
-            </span>
-            <span className="text-[11px] text-neutral-500">
-              Claude Desktop · Claude Code · Cursor
-            </span>
-          </div>
-        </div>
-        <span className="text-neutral-500 transition-transform duration-150 group-hover:translate-x-0.5">
-          →
-        </span>
-      </button>
-
-      <McpConnectModal
-        open={mcpOpen}
-        onClose={() => setMcpOpen(false)}
-        builderId={builderId ?? ""}
-        apiUrl={API_URL}
-      />
     </section>
   );
 }

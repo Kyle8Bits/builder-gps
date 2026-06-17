@@ -16,7 +16,6 @@ The killer feature: when you mark a session **Attended** / **Skipped** / **Block
 Plus:
 
 - **Calendar export** — one-shot `.ics` download or live subscription URL. Native 15-min reminders fire from Apple/Google Calendar.
-- **MCP server** — chat with your path from Claude Desktop / Claude Code / Cursor. 4 tools: `get_path`, `get_next_session`, `mark_session`, `regenerate_path`.
 
 ## Quickstart
 
@@ -32,9 +31,6 @@ cp apps/web/.env.example apps/web/.env.local # optional CTA URLs
 # 3. Frontend (separate shell)
 pnpm install
 pnpm dev                                     # Next.js on :3000
-
-# 4. MCP server (optional)
-cd apps/mcp && pip install -e .              # builder-gps-mcp lands on PATH
 ```
 
 Open <http://localhost:3000>. Landing page first → "Plan with your goal" → form → timeline.
@@ -55,7 +51,6 @@ Open <http://localhost:3000>. Landing page first → "Plan with your goal" → f
 | Backend | Python 3.11+ + FastAPI + Pydantic v2 |
 | LLM | Groq + Llama 3.3 70B (swap to Claude / OpenAI / Gemini in one file) |
 | Storage | SQLite (single file) |
-| MCP | Official `mcp` Python SDK, stdio transport |
 | Schedule | 44 sessions seeded — 5 confirmed real workshops + 39 mock |
 
 ## Project layout
@@ -74,19 +69,14 @@ builder-gps/
 │   │       ├── demo-paths/        Inlined sample personas
 │   │       └── store.ts           Zustand
 │   │   └── .env.example           Frontend NEXT_PUBLIC_* vars
-│   ├── api/         Python FastAPI backend
-│   │   ├── .env.example           Backend env (GROQ_API_KEY, CORS, ...)
-│   │   └── app/
-│   │       ├── routes/            sessions, builder, path
-│   │       ├── services/          decompose_goal, compute_path, path_diff, ical_export
-│   │       ├── prompts/           Markdown system prompts
-│   │       ├── storage/           SQLite store
-│   │       └── data/sessions.json AABW catalog (real + mock)
-│   └── mcp/         Builder GPS MCP server (Python)
-│       ├── .env.example           MCP env reference (set in AI client config)
-│       └── builder_gps_mcp/
-│           ├── server.py          FastMCP entrypoint + 4 tools
-│           └── api_client.py      httpx wrapper, cookie jar auth
+│   └── api/         Python FastAPI backend
+│       ├── .env.example           Backend env (GROQ_API_KEY, CORS, ...)
+│       └── app/
+│           ├── routes/            sessions, builder, path
+│           ├── services/          decompose_goal, compute_path, path_diff, ical_export
+│           ├── prompts/           Markdown system prompts
+│           ├── storage/           SQLite store
+│           └── data/sessions.json AABW catalog (real + mock)
 ├── packages/
 │   └── shared/      TypeScript types mirroring Pydantic schemas
 └── .env.example     Index pointing to per-app envs (no shared env anymore)
@@ -108,25 +98,6 @@ builder-gps/
 
 Identity: HttpOnly `builder_gps_id` cookie, UUID auto-minted on first form submit. No login.
 
-## MCP setup
-
-See [apps/mcp/README.md](apps/mcp/README.md) for Claude Desktop / Claude Code / Cursor config snippets.
-
-```jsonc
-// ~/Library/Application Support/Claude/claude_desktop_config.json
-{
-  "mcpServers": {
-    "builder-gps": {
-      "command": "/abs/path/to/venv/bin/builder-gps-mcp",
-      "env": {
-        "BUILDER_GPS_API_URL": "http://localhost:8000",
-        "BUILDER_GPS_BUILDER_ID": "uuid-from-web-app-footer"
-      }
-    }
-  }
-}
-```
-
 ## Status
 
 | Phase | Status |
@@ -135,7 +106,7 @@ See [apps/mcp/README.md](apps/mcp/README.md) for Claude Desktop / Claude Code / 
 | 02 — Mock schedule (44 sessions) | ✅ |
 | 03 — Backend LLM orchestration | ✅ |
 | 04 — Frontend timeline + reroute UI | ✅ |
-| 05.5 — iCal export + MCP server | ✅ |
+| 05.5 — iCal export | ✅ |
 | 06 — Landing page (voter funnel) | ✅ |
 | 05 — Framer Motion animations | ⏳ deferred |
 | 07 — Demo video + Devpost submission | ⏳ next |

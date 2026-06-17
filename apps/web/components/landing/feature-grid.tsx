@@ -10,8 +10,8 @@ const FEATURES = [
     glyph: "↻",
   },
   {
-    title: "Calendar + MCP, your way",
-    body: "Export to .ics for Apple/Google Calendar with native reminders. Or wire it into Claude Desktop via MCP and ask it from any editor.",
+    title: "Lives in your calendar",
+    body: "Export to .ics for Apple or Google Calendar with native 15-minute reminders. Subscribe to the live URL and reroutes sync automatically — no re-import.",
     glyph: "⌘",
   },
   {

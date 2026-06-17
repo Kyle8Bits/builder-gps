@@ -26,9 +26,9 @@ from app.storage.sqlite_store import (
 class BuilderMe(BaseModel):
     """Identity payload for the cookie-bound session.
 
-    Surfaces the builder_id to the web app so it can build:
-    - the iCal subscription URL ( /path/{id}.ics )
-    - the MCP env value          ( BUILDER_GPS_BUILDER_ID )
+    Surfaces the builder_id to the web app so it can build the iCal
+    subscription URL ( /path/{id}.ics ) and so the FE knows whether
+    to hydrate an existing path on mount.
     """
 
     builder_id: str
