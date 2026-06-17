@@ -113,4 +113,4 @@ Identity: HttpOnly `builder_gps_id` cookie, UUID auto-minted on first form submi
 
 ## License
 
-MIT
+Kyle8Bits - AABW
