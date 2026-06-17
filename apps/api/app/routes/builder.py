@@ -10,6 +10,7 @@ from fastapi import APIRouter, Cookie, HTTPException, Response
 
 from pydantic import BaseModel
 
+from app.config import get_settings
 from app.schemas import BuilderState, PathResponse
 from app.services.compute_path import compute_path
 from app.services.decompose_goal import decompose_goal
@@ -47,11 +48,13 @@ async def submit_state(
 ) -> PathResponse:
     """Submit/replace builder state. Re-runs decomposeGoal + computePath."""
     builder_id = builder_gps_id or new_builder_id()
+    settings = get_settings()
     response.set_cookie(
         BUILDER_COOKIE,
         builder_id,
         httponly=True,
-        samesite="lax",
+        samesite=settings.cookie_samesite,
+        secure=settings.cookie_secure,
         max_age=60 * 60 * 24 * 7,
     )
 

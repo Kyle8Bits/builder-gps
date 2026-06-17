@@ -28,6 +28,14 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
     sqlite_path: str = "builder_gps.db"
 
+    # Cross-site cookie behavior. Local dev: `lax` + secure=False (cookie
+    # works over plain http://localhost). Production with split subdomains
+    # under a Public Suffix Listed domain (like *.up.railway.app): must be
+    # `none` + secure=True or the browser drops the cookie on cross-site
+    # XHR and /builder/me 404s on every page load.
+    cookie_samesite: str = "lax"
+    cookie_secure: bool = False
+
     # Groq + Llama 3.3 70B is the default — generous free tier, ~300ms
     # latency, JSON mode works. To swap providers, change llm_client.py only.
     model_decompose: str = "llama-3.3-70b-versatile"
