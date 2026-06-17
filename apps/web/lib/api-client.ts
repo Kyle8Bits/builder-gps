@@ -1,5 +1,6 @@
 import type {
   BuilderState,
+  CapabilityResourcesMap,
   Health,
   MarkStatus,
   PathResponse,
@@ -73,4 +74,24 @@ export function exportIcsUrl(): string {
 
 export function subscriptionIcsUrl(builderId: string): string {
   return `${API_URL}/path/${encodeURIComponent(builderId)}.ics`;
+}
+
+// Phase 07 — knowledge layer
+export function fetchResources(): Promise<CapabilityResourcesMap> {
+  return request<CapabilityResourcesMap>("/path/resources");
+}
+
+// Returns the raw markdown export as a Blob so the caller can trigger a
+// browser download via createObjectURL. We bypass `request()` because we
+// want bytes, not parsed JSON.
+export async function exportPathMarkdown(): Promise<Blob> {
+  const res = await fetch(`${API_URL}/path/export.md`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Export failed ${res.status}: ${body}`);
+  }
+  return res.blob();
 }

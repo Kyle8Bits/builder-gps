@@ -40,8 +40,9 @@ def _user_prompt(
     attended: list[str],
     skipped: list[str],
     blocked: list[str],
+    extra_constraint: str | None = None,
 ) -> str:
-    return (
+    base = (
         "Builder state:\n"
         f"{state.model_dump_json(indent=2)}\n\n"
         "Prerequisites (ordered foundational → advanced):\n"
@@ -54,6 +55,15 @@ def _user_prompt(
         f"- blocked: {blocked or 'none'}\n\n"
         "Pick 6–10 sessions. Return JSON only."
     )
+    # Phase 04 — critic-driven re-run injects a constraint hint after the
+    # base prompt. The model must satisfy this on top of the existing rules.
+    if extra_constraint:
+        base += (
+            "\n\nADDITIONAL CONSTRAINT FROM CRITIC:\n"
+            f"{extra_constraint}\n"
+            "Adjust the session selection to satisfy this constraint."
+        )
+    return base
 
 
 def _sessions_compact(sessions: list[Session]) -> str:
@@ -86,8 +96,13 @@ def compute_path(
     attended: list[str] | None = None,
     skipped: list[str] | None = None,
     blocked: list[str] | None = None,
+    extra_constraint: str | None = None,
 ) -> PathPlan:
-    """Run the path-computation LLM call."""
+    """Run the path-computation LLM call.
+
+    `extra_constraint` is the critic's hint when the prior path was judged
+    "weak" (Phase 04). Empty/None for the first attempt.
+    """
     settings = get_settings()
     return structured(
         model=settings.model_compute_path,
@@ -99,6 +114,7 @@ def compute_path(
             attended=attended or [],
             skipped=skipped or [],
             blocked=blocked or [],
+            extra_constraint=extra_constraint,
         ),
         response_schema=PathPlan,
         temperature=0.4,

@@ -16,12 +16,15 @@ import time
 
 from fastapi import APIRouter, Cookie, HTTPException, Response
 
-from app.schemas import MarkRequest, PathResponse
-from app.services.compute_path import compute_path
+from app.schemas import MarkRequest, PathResponse, ResourceLink
 from app.services.ical_export import build_ics
 from app.services.llm_client import LLMError
+from app.services.markdown_export import build_markdown, slug_from_goal
 from app.services.path_diff import diff_paths
+from app.services.path_with_critic import compute_path_with_critic
 from app.services.schedule_loader import load_sessions
+from app.storage.capability_resources_store import get_capability_resources
+from app.storage.decompose_traces_store import get_trace
 from app.storage.sqlite_store import (
     HistoryEntry,
     get_builder,
@@ -66,10 +69,11 @@ async def mark_session(
     blocked = [h.session_id for h in new_history if h.status == "blocked"]
 
     try:
-        plan = compute_path(
+        plan = compute_path_with_critic(
             state=record.state,
             prerequisites=record.prerequisites,
             sessions=sessions,
+            builder_id=record.id,
             attended=attended,
             skipped=skipped,
             blocked=blocked,
@@ -127,6 +131,24 @@ async def get_path(
     )
 
 
+@router.get("/path/resources", response_model=dict[str, list[ResourceLink]])
+async def get_path_resources(
+    builder_gps_id: str | None = Cookie(default=None),
+) -> dict[str, list[ResourceLink]]:
+    """Return resource links per capability slug for the cookie's builder.
+
+    Empty dict on first-time builder or when Tavily was unreachable during
+    decompose. Frontend renders empty state per card; we don't 404 here so
+    the UI distinguishes "no path" (handled by /path) from "no resources".
+    """
+    if not builder_gps_id:
+        raise HTTPException(400, "No builder session.")
+    record = get_builder(builder_gps_id)
+    if record is None:
+        raise HTTPException(404, "Builder not found.")
+    return get_capability_resources(builder_gps_id)
+
+
 @router.post("/path/regenerate", response_model=PathResponse)
 async def regenerate_path(
     builder_gps_id: str | None = Cookie(default=None),
@@ -144,10 +166,11 @@ async def regenerate_path(
     blocked = [h.session_id for h in record.history if h.status == "blocked"]
 
     try:
-        plan = compute_path(
+        plan = compute_path_with_critic(
             state=record.state,
             prerequisites=record.prerequisites,
             sessions=sessions,
+            builder_id=record.id,
             attended=attended,
             skipped=skipped,
             blocked=blocked,
@@ -211,6 +234,49 @@ async def export_ics_for_session(
             400, "No builder session. Submit /builder/state first."
         )
     return _ics_response(builder_gps_id, as_attachment=True)
+
+
+# ---------------------------------------------------------------------------
+# Markdown agent-context export (Phase 06)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/path/export.md", include_in_schema=False)
+async def export_markdown_for_session(
+    builder_gps_id: str | None = Cookie(default=None),
+) -> Response:
+    """Cookie-bound markdown download. Drop the file into Claude Code /
+    Cursor / Aider as project context and the agent is briefed on the
+    builder's whole week — goal, capabilities, path, resources, and the
+    decompose-agent's reasoning trace.
+    """
+    if not builder_gps_id:
+        raise HTTPException(400, "No builder session.")
+    record = get_builder(builder_gps_id)
+    if record is None or record.prerequisites is None:
+        raise HTTPException(404, "No path yet. Submit /builder/state.")
+
+    resources = get_capability_resources(builder_gps_id)
+    trace = get_trace(builder_gps_id)
+
+    md = build_markdown(
+        state=record.state,
+        prereqs=record.prerequisites,
+        path=record.path,
+        readiness_pct=record.readiness_pct,
+        resources=resources,
+        trace=trace,
+        catalog=load_sessions(),
+    )
+    filename = f"builder-gps-{slug_from_goal(record.state.goal)}.md"
+    return Response(
+        content=md,
+        media_type="text/markdown; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "no-store",
+        },
+    )
 
 
 @router.get("/path/{builder_id}.ics", include_in_schema=False)

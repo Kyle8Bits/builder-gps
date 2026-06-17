@@ -1,7 +1,11 @@
 "use client";
 
 import { create } from "zustand";
-import type { PathDiff, PathResponse } from "@shared/types";
+import type {
+  CapabilityResourcesMap,
+  PathDiff,
+  PathResponse,
+} from "@shared/types";
 
 type View = "form" | "timeline";
 
@@ -15,6 +19,9 @@ interface BuilderGpsState {
   view: View;
   path: PathResponse | null;
   reroute: RerouteNotice | null;
+  // Phase 07 — knowledge layer. Keyed by Capability.slug, populated by
+  // GET /path/resources after a path is loaded. Empty map is valid.
+  resources: CapabilityResourcesMap;
 
   showForm: () => void;
   showTimeline: () => void;
@@ -22,6 +29,7 @@ interface BuilderGpsState {
   // Restore a returning user's path from /path on mount. Skips the reroute
   // notice — a page reload isn't a "live change", so don't flash diffs.
   hydratePath: (next: PathResponse) => void;
+  setResources: (next: CapabilityResourcesMap) => void;
   dismissReroute: () => void;
 }
 
@@ -29,6 +37,7 @@ export const useBuilderGps = create<BuilderGpsState>((set) => ({
   view: "form",
   path: null,
   reroute: null,
+  resources: {},
 
   showForm: () => set({ view: "form" }),
   showTimeline: () => set({ view: "timeline" }),
@@ -48,6 +57,8 @@ export const useBuilderGps = create<BuilderGpsState>((set) => ({
   },
 
   hydratePath: (next) => set({ path: next, reroute: null, view: "timeline" }),
+
+  setResources: (next) => set({ resources: next }),
 
   dismissReroute: () => set({ reroute: null }),
 }));

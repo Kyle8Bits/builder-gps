@@ -12,9 +12,9 @@ from pydantic import BaseModel
 
 from app.config import get_settings
 from app.schemas import BuilderState, PathResponse
-from app.services.compute_path import compute_path
-from app.services.decompose_goal import decompose_goal
+from app.services.decompose_agent import decompose_agent
 from app.services.llm_client import LLMError
+from app.services.path_with_critic import compute_path_with_critic
 from app.services.schedule_loader import load_sessions
 from app.storage.sqlite_store import (
     get_builder,
@@ -65,15 +65,16 @@ async def submit_state(
         )
 
     try:
-        prereqs = decompose_goal(state)
+        prereqs = decompose_agent(state, builder_id=builder_id)
         log.info(
             "decomposed goal into %d capabilities", len(prereqs.capabilities)
         )
 
-        plan = compute_path(
+        plan = compute_path_with_critic(
             state=state,
             prerequisites=prereqs,
             sessions=sessions,
+            builder_id=builder_id,
         )
         log.info(
             "computed path: %d sessions, readiness=%d",

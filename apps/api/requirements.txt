@@ -5,3 +5,10 @@ pydantic-settings==2.6.1
 groq==0.13.0
 python-dotenv==1.0.1
 httpx==0.27.2
+
+# === Agentic stack (Phase 01) ===
+anthropic==0.40.0           # unused in v1 — scaffolded for post-Devpost swap
+voyageai==0.3.2             # embeddings shortlist (Phase 02)
+tavily-python==0.5.0        # web search tool in decompose agent (Phase 03)
+numpy==2.1.3                # cosine math for shortlist_sessions (Phase 02)
+cerebras_cloud_sdk==1.67.0  # alternate Llama / gpt-oss tool-calling provider (Phase 03)

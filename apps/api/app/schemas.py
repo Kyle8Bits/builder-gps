@@ -58,6 +58,9 @@ class Capability(BaseModel):
     name: str
     why: str
     matching_tags: list[str] = Field(default_factory=list)
+    # Server-computed kebab slug for cross-referencing with /path/resources.
+    # Empty for legacy persisted rows; populated by decompose_agent on write.
+    slug: str = ""
 
 
 class Prerequisites(BaseModel):
@@ -88,3 +91,35 @@ class PathResponse(BaseModel):
 
 class MarkRequest(BaseModel):
     status: MarkStatus
+
+
+# === Phase 03 — Agentic refactor + knowledge layer ===
+
+ResourceSource = Literal["youtube", "docs", "blog", "github", "other"]
+
+
+class ResourceLink(BaseModel):
+    """A vetted external resource (YouTube video, docs page, blog post)
+    surfaced inline under a prerequisite capability. Sourced from the
+    Tavily searches the decompose agent runs during its loop.
+    """
+
+    title: str = Field(max_length=200)
+    url: str = Field(max_length=500)
+    source: ResourceSource
+    snippet: str = Field(max_length=300)
+
+
+CriticVerdictLabel = Literal["ok", "weak"]
+
+
+class CriticVerdict(BaseModel):
+    """Phase 04 — output of the self-eval critic that grades each path.
+
+    `verdict` drives the loop: "weak" → re-run compute_path with
+    `suggested_constraint` appended to the user prompt.
+    """
+
+    verdict: CriticVerdictLabel
+    missing_capabilities: list[str] = Field(default_factory=list, max_length=10)
+    suggested_constraint: str = Field(default="", max_length=500)

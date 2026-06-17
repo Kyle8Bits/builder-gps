@@ -3,16 +3,24 @@
 import { useMemo } from "react";
 
 import { CalendarExportPanel } from "@/components/calendar-export";
+import { CapabilityResources } from "@/components/capability-resources";
 import { DayBlock } from "@/components/day-block";
 import { Logo } from "@/components/logo";
+import { PathExportButton } from "@/components/path-export-button";
 import { ReadinessBar } from "@/components/readiness-bar";
 import { RerouteNotice } from "@/components/reroute-notice";
 import { useSessions } from "@/lib/use-sessions";
 import { useBuilderGps } from "@/lib/store";
-import type { PathSession, Session } from "@shared/types";
+import type {
+  Capability,
+  CapabilityResourcesMap,
+  PathSession,
+  Session,
+} from "@shared/types";
 
 export function Timeline() {
   const path = useBuilderGps((s) => s.path);
+  const resources = useBuilderGps((s) => s.resources);
   const showForm = useBuilderGps((s) => s.showForm);
   const sessionsQuery = useSessions();
 
@@ -39,13 +47,16 @@ export function Timeline() {
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pb-32 pt-6 sm:px-6">
       <header className="flex items-center justify-between gap-3 pt-2">
         <Logo size={28} showWord />
-        <button
-          type="button"
-          onClick={showForm}
-          className="cursor-pointer rounded-full border border-neutral-800 bg-neutral-950/60 px-3 py-1.5 text-xs text-neutral-400 transition-colors duration-150 hover:border-neutral-600 hover:text-neutral-100"
-        >
-          ← Edit goal
-        </button>
+        <div className="flex items-center gap-2">
+          <PathExportButton />
+          <button
+            type="button"
+            onClick={showForm}
+            className="cursor-pointer rounded-full border border-neutral-800 bg-neutral-950/60 px-3 py-1.5 text-xs text-neutral-400 transition-colors duration-150 hover:border-neutral-600 hover:text-neutral-100"
+          >
+            ← Edit goal
+          </button>
+        </div>
       </header>
 
       <div className="flex flex-col gap-5 rounded-2xl border border-neutral-800/80 bg-neutral-900/40 p-5 backdrop-blur-sm">
@@ -55,8 +66,9 @@ export function Timeline() {
           totalSessions={onPathCount}
         />
         <PrerequisitesPanel
-          capabilities={path.prerequisites.capabilities.map((c) => c.name)}
+          capabilities={path.prerequisites.capabilities}
           criteria={path.prerequisites.success_criteria}
+          resources={resources}
         />
         <CalendarExportPanel />
       </div>
@@ -95,38 +107,56 @@ export function Timeline() {
   );
 }
 
+// Render expanded by default (per Phase 07 brainstorm decision) so voters
+// see the agent's research inline without an extra click.
 function PrerequisitesPanel({
   capabilities,
   criteria,
+  resources,
 }: {
-  capabilities: string[];
+  capabilities: Capability[];
   criteria: string[];
+  resources: CapabilityResourcesMap;
 }) {
   return (
-    <details className="group rounded-xl border border-neutral-800/80 bg-neutral-950/40 p-3 text-xs">
-      <summary className="flex cursor-pointer select-none items-center justify-between gap-2 text-neutral-300">
-        <span>
+    <div className="rounded-xl border border-neutral-800/80 bg-neutral-950/40 p-4 text-xs">
+      <div className="flex items-center justify-between gap-2 text-neutral-300">
+        <span className="font-medium">
           What you need to learn ·{" "}
           <span className="text-neutral-500">
             {capabilities.length} capabilities, {criteria.length} checkpoints
           </span>
         </span>
-        <span className="text-neutral-600 transition-transform duration-200 group-open:rotate-90">
-          ›
-        </span>
-      </summary>
-      <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div>
-          <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-300">
-            Prerequisites
-          </div>
-          <ol className="list-decimal space-y-1 pl-4 text-neutral-300">
-            {capabilities.map((c) => (
-              <li key={c}>{c}</li>
-            ))}
-          </ol>
-        </div>
-        <div>
+      </div>
+
+      <ol className="mt-3 flex flex-col gap-3">
+        {capabilities.map((c, idx) => (
+          <li
+            key={c.slug || c.name}
+            className="rounded-lg border border-neutral-800/60 bg-neutral-900/40 p-3"
+          >
+            <div className="flex items-baseline gap-2">
+              <span className="shrink-0 text-[10px] font-semibold text-brand-400 tnum">
+                {String(idx + 1).padStart(2, "0")}
+              </span>
+              <span className="font-medium text-neutral-100">{c.name}</span>
+            </div>
+            {c.why && (
+              <div className="mt-1 pl-6 text-[11px] leading-relaxed text-neutral-500">
+                {c.why}
+              </div>
+            )}
+            <div className="pl-6">
+              <CapabilityResources
+                resources={c.slug ? resources[c.slug] : undefined}
+              />
+            </div>
+          </li>
+        ))}
+      </ol>
+
+      {criteria.length > 0 && (
+        <div className="mt-4 border-t border-neutral-800/60 pt-3">
           <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-300">
             Success by Friday
           </div>
@@ -136,8 +166,8 @@ function PrerequisitesPanel({
             ))}
           </ul>
         </div>
-      </div>
-    </details>
+      )}
+    </div>
   );
 }
 

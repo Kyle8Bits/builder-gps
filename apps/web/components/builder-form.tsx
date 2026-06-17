@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import { submitBuilderState } from "@/lib/api-client";
+import { fetchResources, submitBuilderState } from "@/lib/api-client";
 import {
   EXPERIENCE_OPTIONS,
   STACK_OPTIONS,
@@ -38,6 +38,7 @@ const DEFAULTS: FormValues = {
 
 export function BuilderForm() {
   const setPath = useBuilderGps((s) => s.setPath);
+  const setResources = useBuilderGps((s) => s.setResources);
   const [serverError, setServerError] = useState<string | null>(null);
 
   const {
@@ -53,7 +54,15 @@ export function BuilderForm() {
 
   const submit = useMutation({
     mutationFn: (values: BuilderState) => submitBuilderState(values),
-    onSuccess: (data) => setPath(data),
+    onSuccess: (data) => {
+      setPath(data);
+      // Fire-and-forget — resources are cached at decompose time, so
+      // they're already in the DB by the time path returns. Failure
+      // here is non-fatal (timeline still renders without resources).
+      fetchResources()
+        .then(setResources)
+        .catch(() => setResources({}));
+    },
     onError: (err: unknown) => {
       setServerError(err instanceof Error ? err.message : String(err));
     },

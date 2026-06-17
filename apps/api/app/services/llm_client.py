@@ -18,6 +18,7 @@ import logging
 import time
 from typing import TypeVar
 
+from cerebras.cloud.sdk import Cerebras
 from groq import Groq
 from pydantic import BaseModel, ValidationError
 
@@ -33,15 +34,32 @@ class LLMError(RuntimeError):
     pass
 
 
-def _client() -> Groq:
+def _client_and_model(default_model: str) -> tuple[object, str]:
+    """Pick the right client + model based on `agent_client_provider`.
+
+    Cerebras + Groq are OpenAI-compatible — `chat.completions.create()` has
+    the same signature on both — so we can swap the underlying SDK without
+    touching the calling code. The model name MUST be the provider's name
+    though; on Cerebras we override the caller's groq-style model id with
+    settings.cerebras_model.
+    """
     settings = get_settings()
+    provider = settings.agent_client_provider.lower()
+    if provider == "cerebras":
+        if not settings.cerebras_api_key:
+            raise LLMError(
+                "CEREBRAS_API_KEY is not set. Add it to apps/api/.env "
+                "or flip AGENT_CLIENT_PROVIDER=groq."
+            )
+        return Cerebras(api_key=settings.cerebras_api_key), settings.cerebras_model
+    # Default: Groq
     if not settings.groq_api_key:
         raise LLMError(
             "GROQ_API_KEY is not set. Add it to apps/api/.env "
             "(see apps/api/.env.example). "
             "Get a free key at https://console.groq.com/keys."
         )
-    return Groq(api_key=settings.groq_api_key)
+    return Groq(api_key=settings.groq_api_key), default_model
 
 
 def structured(
@@ -54,7 +72,7 @@ def structured(
     max_retries: int = 2,
 ) -> T:
     """Run a single LLM call and parse the response into `response_schema`."""
-    client = _client()
+    client, model = _client_and_model(model)
     schema_dict = response_schema.model_json_schema()
     schema_block = json.dumps(schema_dict, indent=2)
     full_system = (

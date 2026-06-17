@@ -4,12 +4,17 @@ import { useEffect, useRef, useState } from "react";
 
 import { BuilderForm } from "@/components/builder-form";
 import { Timeline } from "@/components/timeline";
-import { fetchBuilderMe, fetchPath } from "@/lib/api-client";
+import {
+  fetchBuilderMe,
+  fetchPath,
+  fetchResources,
+} from "@/lib/api-client";
 import { useBuilderGps } from "@/lib/store";
 
 export function BuilderApp() {
   const view = useBuilderGps((s) => s.view);
   const hydratePath = useBuilderGps((s) => s.hydratePath);
+  const setResources = useBuilderGps((s) => s.setResources);
   const [hydrating, setHydrating] = useState(true);
   // Guard against double-run in React 18 strict mode dev — we don't want
   // /builder/me firing twice on mount.
@@ -25,9 +30,16 @@ export function BuilderApp() {
         const me = await fetchBuilderMe();
         if (cancelled) return;
         if (me.has_path) {
-          const path = await fetchPath();
+          // Path is the hero render — fetch it first. Resources are
+          // secondary; tolerate any failure so a broken /path/resources
+          // never blocks the timeline from showing.
+          const [path, resources] = await Promise.all([
+            fetchPath(),
+            fetchResources().catch(() => ({})),
+          ]);
           if (cancelled) return;
           hydratePath(path);
+          setResources(resources);
         }
       } catch {
         // 404 = no cookie / no session yet. Anything else is a transient
@@ -41,7 +53,7 @@ export function BuilderApp() {
     return () => {
       cancelled = true;
     };
-  }, [hydratePath]);
+  }, [hydratePath, setResources]);
 
   if (hydrating) {
     return (

@@ -41,12 +41,34 @@ export interface Capability {
   name: string;
   why: string;
   matching_tags: string[];
+  // Server-computed kebab slug. Used to cross-reference /path/resources.
+  // Optional so the static landing-page demo personas (no server round-trip)
+  // type-check without padding. Server-rendered Capabilities always include it.
+  slug?: string;
 }
 
 export interface Prerequisites {
   capabilities: Capability[];
   success_criteria: string[];
 }
+
+// Phase 07 — inline resource links per capability, sourced from the
+// Tavily searches the decompose agent ran. Read via GET /path/resources.
+export type ResourceSource =
+  | "youtube"
+  | "docs"
+  | "blog"
+  | "github"
+  | "other";
+
+export interface ResourceLink {
+  title: string;
+  url: string;
+  source: ResourceSource;
+  snippet: string;
+}
+
+export type CapabilityResourcesMap = Record<string, ResourceLink[]>;
 
 export interface PathSession {
   session_id: string;
