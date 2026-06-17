@@ -8,21 +8,58 @@ export const DAY_LABELS: Record<1 | 2 | 3 | 4 | 5, { date: string; theme: string
   5: { date: "Sat Jul 12", theme: "Demo" },
 };
 
+// Popular stacks shown as autocomplete suggestions in the combobox.
+// Builders can also type any stack we don't list — the form accepts free
+// text via stack-combobox.tsx. Order matters: first 8 are shown when the
+// input is empty, so put the highest-signal stacks first.
 export const STACK_OPTIONS = [
+  // languages + first-party frameworks
   "typescript",
   "python",
+  "go",
+  "rust",
   "nextjs",
+  "react",
+  "svelte",
+  "vue",
+  // backend frameworks
   "fastapi",
+  "express",
+  "hono",
+  "trpc",
+  // LLM providers
   "anthropic",
   "openai",
+  "groq",
+  "cerebras",
   "google",
+  "cohere",
+  "mistral",
   "byteplus",
-  "vercel",
-  "mongodb",
-  "stripe",
-  "cloudflare",
+  // agent frameworks
   "langchain",
+  "langgraph",
+  "llamaindex",
+  "mastra",
   "mcp",
+  // databases + storage
+  "postgres",
+  "mongodb",
+  "sqlite",
+  "convex",
+  "supabase",
+  "redis",
+  // deploy
+  "vercel",
+  "railway",
+  "cloudflare",
+  "fly-io",
+  "modal",
+  // payments + integrations
+  "stripe",
+  "tavily",
+  "voyage",
+  // mobile
   "react-native",
   "flutter",
 ] as const;

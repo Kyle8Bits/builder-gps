@@ -9,13 +9,13 @@ import { z } from "zod";
 import { fetchResources, submitBuilderState } from "@/lib/api-client";
 import {
   EXPERIENCE_OPTIONS,
-  STACK_OPTIONS,
   TEAM_OPTIONS,
 } from "@/lib/constants";
 import { useBuilderGps } from "@/lib/store";
 import { cn } from "@/lib/cn";
 import { Logo } from "@/components/logo";
 import { PathLoading } from "@/components/path-loading";
+import { StackCombobox } from "@/components/stack-combobox";
 import type { BuilderState } from "@shared/types";
 
 const schema = z.object({
@@ -71,13 +71,6 @@ export function BuilderForm() {
   const stack = watch("stack");
   const hours = watch("hours_per_day");
 
-  function toggleStack(value: string) {
-    const next = stack.includes(value)
-      ? stack.filter((s) => s !== value)
-      : [...stack, value];
-    setValue("stack", next, { shouldValidate: true });
-  }
-
   // Mid-LLM-call: show the planning animation instead of a frozen form.
   if (submit.isPending) {
     return <PathLoading />;
@@ -131,27 +124,17 @@ export function BuilderForm() {
           />
         </Field>
 
-        <Field label="Stack you'll build on" error={errors.stack?.message}>
-          <div className="flex flex-wrap gap-1.5">
-            {STACK_OPTIONS.map((opt) => {
-              const active = stack.includes(opt);
-              return (
-                <button
-                  key={opt}
-                  type="button"
-                  onClick={() => toggleStack(opt)}
-                  className={cn(
-                    "cursor-pointer rounded-full border px-3 py-1 text-xs transition-colors duration-150",
-                    active
-                      ? "border-brand-500 bg-brand-500/15 text-brand-200"
-                      : "border-neutral-800 bg-neutral-950/40 text-neutral-400 hover:border-neutral-600 hover:text-neutral-200"
-                  )}
-                >
-                  {opt}
-                </button>
-              );
-            })}
-          </div>
+        <Field
+          label="Stack you'll build on"
+          hint="Type any stack — we'll suggest matches, or accept your raw input."
+          error={errors.stack?.message}
+        >
+          <StackCombobox
+            value={stack}
+            onChange={(next) =>
+              setValue("stack", next, { shouldValidate: true })
+            }
+          />
         </Field>
 
         <div className="grid grid-cols-2 gap-5">

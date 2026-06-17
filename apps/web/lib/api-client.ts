@@ -95,3 +95,70 @@ export async function exportPathMarkdown(): Promise<Blob> {
   }
   return res.blob();
 }
+
+// === Organizer admin (organizer-import plan, Phase 01) ===
+
+export interface AdminSessionsResult {
+  sessions: Session[];
+  source: "override" | "file";
+  count: number;
+}
+
+async function adminRequest<T>(
+  path: string,
+  token: string,
+  init?: RequestInit
+): Promise<{ data: T; headers: Headers }> {
+  const res = await fetch(`${API_URL}${path}`, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      "X-Admin-Token": token,
+      ...(init?.headers ?? {}),
+    },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Admin ${path} ${res.status}: ${body || res.statusText}`);
+  }
+  const data = (await res.json()) as T;
+  return { data, headers: res.headers };
+}
+
+export async function fetchAdminSessions(
+  token: string
+): Promise<AdminSessionsResult> {
+  const { data, headers } = await adminRequest<Session[]>(
+    "/admin/sessions",
+    token
+  );
+  return {
+    sessions: data,
+    source: (headers.get("X-Source") as "override" | "file") ?? "file",
+    count: Number(headers.get("X-Count") ?? data.length),
+  };
+}
+
+export async function importAdminSessions(
+  token: string,
+  sessions: Session[]
+): Promise<{ imported: number }> {
+  const { data } = await adminRequest<{ imported: number }>(
+    "/admin/sessions",
+    token,
+    { method: "POST", body: JSON.stringify(sessions) }
+  );
+  return data;
+}
+
+export async function clearAdminSessions(
+  token: string
+): Promise<{ cleared: boolean }> {
+  const { data } = await adminRequest<{ cleared: boolean }>(
+    "/admin/sessions/clear",
+    token,
+    { method: "POST" }
+  );
+  return data;
+}

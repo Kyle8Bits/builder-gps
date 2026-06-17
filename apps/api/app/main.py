@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app import __version__
 from app.config import get_settings
-from app.routes import builder, path, sessions
+from app.routes import admin, builder, path, sessions
 from app.schemas import Health
 from app.storage.sqlite_store import init_db
 
@@ -47,6 +47,7 @@ def create_app() -> FastAPI:
     app.include_router(sessions.router)
     app.include_router(builder.router)
     app.include_router(path.router)
+    app.include_router(admin.router)
     return app
 
 

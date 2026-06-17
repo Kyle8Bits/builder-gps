@@ -82,6 +82,12 @@ class Settings(BaseSettings):
     tavily_api_key: str = ""
     tavily_timeout_seconds: int = 8
 
+    # === Organizer admin import (Phase 01 of organizer-import plan) ===
+    # Shared bearer token. Empty string = admin feature disabled (returns 503).
+    # When set, organizers paste this in the /admin page to replace the mock
+    # session catalog with the live AABW workshop schedule.
+    admin_token: str = ""
+
     @property
     def cors_origins_list(self) -> list[str]:
         s = self.cors_origins.strip()
