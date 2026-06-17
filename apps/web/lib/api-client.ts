@@ -63,6 +63,10 @@ export function fetchBuilderMe(): Promise<BuilderMe> {
   return request<BuilderMe>("/builder/me");
 }
 
+export function fetchPath(): Promise<PathResponse> {
+  return request<PathResponse>("/path");
+}
+
 export function exportIcsUrl(): string {
   return `${API_URL}/path/export.ics`;
 }

@@ -19,6 +19,9 @@ interface BuilderGpsState {
   showForm: () => void;
   showTimeline: () => void;
   setPath: (next: PathResponse, prevReadiness?: number) => void;
+  // Restore a returning user's path from /path on mount. Skips the reroute
+  // notice — a page reload isn't a "live change", so don't flash diffs.
+  hydratePath: (next: PathResponse) => void;
   dismissReroute: () => void;
 }
 
@@ -43,6 +46,8 @@ export const useBuilderGps = create<BuilderGpsState>((set) => ({
         : null;
     set({ path: next, reroute, view: "timeline" });
   },
+
+  hydratePath: (next) => set({ path: next, reroute: null, view: "timeline" }),
 
   dismissReroute: () => set({ reroute: null }),
 }));
