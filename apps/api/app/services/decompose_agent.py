@@ -266,13 +266,16 @@ def decompose_agent(state: BuilderState, *, builder_id: str) -> Prerequisites:
                     f"Final JSON parse failed: {exc} | raw={text[:300]}"
                 )
 
-            # Map cached Tavily results to final capabilities by token
-            # overlap. Agents often search with broader / different phrasing
-            # than their final capability names — we want a capability with
-            # slug "mcp-protocol-fundamentals-and-..." to still pick up a
-            # search keyed under "mcp-server-github-...". Token overlap is
-            # cheap and reliable; require ≥1 meaningful token in common so
-            # unrelated searches don't bleed into every capability.
+            # Map cached Tavily results to final capabilities.
+            #
+            # Agents often search with broader / different phrasing than
+            # their final capability names. Strategy:
+            #   1. Best-effort token overlap match per capability
+            #   2. Fallback: if NO capability had any overlap (e.g. the
+            #      agent searched "RAG chatbot goal" while final caps are
+            #      "mongodb-atlas-vector-search-...") just attach the
+            #      largest cached search to every capability. Generic
+            #      resources beat empty cards in the UI.
             _STOPWORDS = {
                 "a", "the", "of", "with", "in", "and", "for", "or",
                 "to", "on", "an", "by", "as", "is",
@@ -282,6 +285,8 @@ def decompose_agent(state: BuilderState, *, builder_id: str) -> Prerequisites:
                 for s, links in capability_cache.items()
                 if links
             ]
+
+            any_match = False
             for cap in prereqs.capabilities:
                 cap_tokens = set(cap.slug.split("-")) - _STOPWORDS
                 best_overlap = 0
@@ -295,6 +300,21 @@ def decompose_agent(state: BuilderState, *, builder_id: str) -> Prerequisites:
                     upsert_capability_resources(
                         cap.slug, builder_id, capability_cache[best_slug]
                     )
+                    any_match = True
+
+            if not any_match and cache_token_index:
+                # Fallback: pick the cached search with the most results
+                # and attach it to every capability.
+                fallback_slug = max(
+                    capability_cache,
+                    key=lambda s: len(capability_cache[s]),
+                )
+                fallback_links = capability_cache[fallback_slug]
+                if fallback_links:
+                    for cap in prereqs.capabilities:
+                        upsert_capability_resources(
+                            cap.slug, builder_id, fallback_links
+                        )
 
             trace.append(
                 {
