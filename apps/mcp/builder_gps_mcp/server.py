@@ -20,7 +20,7 @@ from mcp.server.fastmcp import FastMCP
 from .api_client import ApiError, BuilderGpsClient
 
 SAIGON = ZoneInfo("Asia/Saigon")
-DEFAULT_API_URL = "http://localhost:8000"
+DEFAULT_API_URL = "https://api-builder-gps-production.up.railway.app"
 
 mcp = FastMCP("builder-gps")
 _client: BuilderGpsClient | None = None

@@ -1,6 +1,6 @@
 [project]
 name = "builder-gps-mcp"
-version = "0.1.0"
+version = "0.1.1"
 description = "MCP server for Builder GPS — chat with your Agentic AI Build Week schedule from any AI editor."
 readme = "README.md"
 license = { text = "MIT" }
