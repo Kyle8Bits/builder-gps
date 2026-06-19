@@ -15,6 +15,24 @@ export interface BuilderMe {
 export const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
+// Typed error so callers can branch on HTTP status (e.g. show a friendly
+// rate-limit banner on 429 instead of the raw "API /x 429: …" string).
+export class ApiError extends Error {
+  status: number;
+  retryAfterSeconds?: number;
+
+  constructor(
+    message: string,
+    status: number,
+    retryAfterSeconds?: number
+  ) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.retryAfterSeconds = retryAfterSeconds;
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
@@ -27,7 +45,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    throw new Error(`API ${path} ${res.status}: ${body}`);
+    const retryHeader = res.headers.get("Retry-After");
+    throw new ApiError(
+      `API ${path} ${res.status}: ${body}`,
+      res.status,
+      retryHeader ? Number.parseInt(retryHeader, 10) : undefined
+    );
   }
   return (await res.json()) as T;
 }

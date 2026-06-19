@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import { fetchResources, submitBuilderState } from "@/lib/api-client";
+import { ApiError, fetchResources, submitBuilderState } from "@/lib/api-client";
 import {
   EXPERIENCE_OPTIONS,
   TEAM_OPTIONS,
@@ -36,10 +36,17 @@ const DEFAULTS: FormValues = {
   hours_per_day: 8,
 };
 
+// Discriminated error state — 429 (rate limit) gets its own friendly banner;
+// everything else falls through to the generic "couldn't plan your path" block.
+type FormError =
+  | { kind: "rate_limit"; minutesRemaining: number }
+  | { kind: "other"; message: string }
+  | null;
+
 export function BuilderForm() {
   const setPath = useBuilderGps((s) => s.setPath);
   const setResources = useBuilderGps((s) => s.setResources);
-  const [serverError, setServerError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<FormError>(null);
 
   const {
     register,
@@ -64,7 +71,18 @@ export function BuilderForm() {
         .catch(() => setResources({}));
     },
     onError: (err: unknown) => {
-      setServerError(err instanceof Error ? err.message : String(err));
+      if (err instanceof ApiError && err.status === 429) {
+        const minutes = Math.max(
+          1,
+          Math.ceil((err.retryAfterSeconds ?? 0) / 60)
+        );
+        setFormError({ kind: "rate_limit", minutesRemaining: minutes });
+        return;
+      }
+      setFormError({
+        kind: "other",
+        message: err instanceof Error ? err.message : String(err),
+      });
     },
   });
 
@@ -79,7 +97,7 @@ export function BuilderForm() {
   return (
     <form
       onSubmit={handleSubmit((values) => {
-        setServerError(null);
+        setFormError(null);
         submit.mutate(values);
       })}
       className="mx-auto flex w-full max-w-2xl flex-col gap-8 p-6 sm:p-8"
@@ -182,13 +200,29 @@ export function BuilderForm() {
         </Field>
       </div>
 
-      {serverError && (
+      {formError?.kind === "rate_limit" && (
+        <div className="rounded-xl border border-amber-900/60 bg-amber-950/40 px-4 py-3 text-sm text-amber-200">
+          <div className="font-semibold">Slow down a sec</div>
+          <div className="mt-1 text-xs text-amber-300/80">
+            You&rsquo;ve hit your goal-change limit — try again in{" "}
+            {formError.minutesRemaining}m.
+          </div>
+          <div className="mt-2 text-[11px] text-amber-300/60">
+            5 goal changes per 15 minutes. Marking sessions still works
+            normally — you can keep using your current path.
+          </div>
+        </div>
+      )}
+
+      {formError?.kind === "other" && (
         <div className="rounded-xl border border-red-900/60 bg-red-950/40 px-4 py-3 text-sm text-red-200">
           <div className="font-semibold">Couldn&rsquo;t plan your path.</div>
-          <div className="mt-1 text-xs text-red-300/80">{serverError}</div>
+          <div className="mt-1 text-xs text-red-300/80">
+            {formError.message}
+          </div>
           <div className="mt-2 text-xs text-red-300/60">
-            Make sure GROQ_API_KEY is set in apps/api/.env, then restart
-            uvicorn.
+            Make sure CEREBRAS_API_KEY (and VOYAGE_API_KEY, TAVILY_API_KEY)
+            is set on the API service.
           </div>
         </div>
       )}
@@ -208,7 +242,7 @@ export function BuilderForm() {
       </button>
 
       <p className="text-center text-xs text-neutral-600">
-        Two LLM calls. Then a 5-day timeline. Reroutes when you mark sessions.
+        An agent researches your goal. AI picks the path. Reroutes when you mark sessions.
       </p>
     </form>
   );

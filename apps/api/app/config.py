@@ -88,6 +88,15 @@ class Settings(BaseSettings):
     # session catalog with the live AABW workshop schedule.
     admin_token: str = ""
 
+    # === Per-person rate limit on goal-change endpoints ===
+    # Caps how often one builder can re-run the full LLM pipeline. Keyed by
+    # cookie-bound builder_id when present, else by client IP. Defaults to
+    # 5 calls / 15 min — generous enough for normal exploration, tight
+    # enough to block "spam regenerate" abuse during the public voting
+    # window. Set GOAL_CHANGE_MAX_CALLS=0 to disable entirely.
+    goal_change_max_calls: int = 5
+    goal_change_window_seconds: int = 900
+
     @property
     def cors_origins_list(self) -> list[str]:
         s = self.cors_origins.strip()

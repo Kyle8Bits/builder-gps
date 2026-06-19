@@ -14,7 +14,7 @@ from __future__ import annotations
 import logging
 import time
 
-from fastapi import APIRouter, Cookie, HTTPException, Response
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Response
 
 from app.schemas import MarkRequest, PathResponse, ResourceLink
 from app.services.ical_export import build_ics
@@ -22,6 +22,7 @@ from app.services.llm_client import LLMError
 from app.services.markdown_export import build_markdown, slug_from_goal
 from app.services.path_diff import diff_paths
 from app.services.path_with_critic import compute_path_with_critic
+from app.services.rate_limit import enforce_goal_change_rate_limit
 from app.services.schedule_loader import load_sessions
 from app.storage.capability_resources_store import get_capability_resources
 from app.storage.decompose_traces_store import get_trace
@@ -149,7 +150,11 @@ async def get_path_resources(
     return get_capability_resources(builder_gps_id)
 
 
-@router.post("/path/regenerate", response_model=PathResponse)
+@router.post(
+    "/path/regenerate",
+    response_model=PathResponse,
+    dependencies=[Depends(enforce_goal_change_rate_limit)],
+)
 async def regenerate_path(
     builder_gps_id: str | None = Cookie(default=None),
 ) -> PathResponse:

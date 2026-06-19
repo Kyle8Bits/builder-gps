@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, Cookie, HTTPException, Response
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Response
 
 from pydantic import BaseModel
 
@@ -15,6 +15,7 @@ from app.schemas import BuilderState, PathResponse
 from app.services.decompose_agent import decompose_agent
 from app.services.llm_client import LLMError
 from app.services.path_with_critic import compute_path_with_critic
+from app.services.rate_limit import enforce_goal_change_rate_limit
 from app.services.schedule_loader import load_sessions
 from app.storage.sqlite_store import (
     get_builder,
@@ -40,7 +41,11 @@ log = logging.getLogger("builder")
 BUILDER_COOKIE = "builder_gps_id"
 
 
-@router.post("/builder/state", response_model=PathResponse)
+@router.post(
+    "/builder/state",
+    response_model=PathResponse,
+    dependencies=[Depends(enforce_goal_change_rate_limit)],
+)
 async def submit_state(
     state: BuilderState,
     response: Response,
