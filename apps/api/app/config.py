@@ -53,7 +53,7 @@ class Settings(BaseSettings):
     # falling back to the same provider used for the decompose agent.
     model_decompose_agent: str = "llama-3.3-70b-versatile"
     model_critic: str = "llama-3.3-70b-versatile"
-    decompose_max_iterations: int = 6
+    decompose_max_iterations: int = 10
     decompose_coverage_threshold: float = 0.8
     critic_readiness_threshold: float = 0.75
     critic_max_retries: int = 2
