@@ -4,16 +4,16 @@ import { useEffect, useState } from "react";
 
 const STAGES = [
   "Reading your goal…",
-  "Decomposing into prerequisites…",
-  "Matching capabilities to AABW sessions…",
-  "Optimizing your 5-day path…",
-  "Wrapping up…",
+  "Agent researching the web…",
+  "Self-grading capabilities…",
+  "Picking your 5-day path…",
+  "Critic reviewing the plan…",
 ];
 
 /**
- * Inline loading screen shown while the two LLM calls run.
- * Cycles through stages every ~1.4s so the user has something
- * to watch during the ~2-4s round trip.
+ * Inline loading screen shown while the agent + path compute pipeline runs.
+ * Cycles through stages every ~1.8s so the user has something to watch
+ * during the ~5-10s multi-turn agent loop + downstream LLM calls.
  */
 export function PathLoading() {
   const [stage, setStage] = useState(0);
@@ -21,7 +21,7 @@ export function PathLoading() {
   useEffect(() => {
     const t = setInterval(() => {
       setStage((s) => Math.min(s + 1, STAGES.length - 1));
-    }, 1400);
+    }, 1800);
     return () => clearInterval(t);
   }, []);
 
@@ -37,7 +37,7 @@ export function PathLoading() {
             {STAGES[stage]}
           </div>
           <div className="text-xs text-neutral-500">
-            Two LLM calls. Usually 2–4 seconds.
+            Multi-turn agent + path planner. Usually 5–10 seconds.
           </div>
         </div>
       </div>
