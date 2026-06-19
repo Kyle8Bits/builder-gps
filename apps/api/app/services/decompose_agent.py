@@ -270,12 +270,17 @@ def decompose_agent(state: BuilderState, *, builder_id: str) -> Prerequisites:
             #
             # Agents often search with broader / different phrasing than
             # their final capability names. Strategy:
-            #   1. Best-effort token overlap match per capability
-            #   2. Fallback: if NO capability had any overlap (e.g. the
-            #      agent searched "RAG chatbot goal" while final caps are
-            #      "mongodb-atlas-vector-search-...") just attach the
-            #      largest cached search to every capability. Generic
-            #      resources beat empty cards in the UI.
+            #   1. Score every (capability, cached_search) pair by shared-
+            #      token overlap. Discard pairs with zero overlap.
+            #   2. Greedy assign highest-overlap pairs first, with the
+            #      constraint that each cached_slug is used at most ONCE.
+            #      Prevents the "same 3 resources on capabilities 01 and
+            #      05" bug — broad agent searches that overlap multiple
+            #      final caps no longer get duplicated.
+            #   3. For capabilities still without a match after step 2,
+            #      assign the largest UNUSED cached search as a fallback.
+            #      Empty cards beat duplicated cards, but a fresh-but-
+            #      tangential result beats both.
             _STOPWORDS = {
                 "a", "the", "of", "with", "in", "and", "for", "or",
                 "to", "on", "an", "by", "as", "is",
@@ -286,35 +291,47 @@ def decompose_agent(state: BuilderState, *, builder_id: str) -> Prerequisites:
                 if links
             ]
 
-            any_match = False
+            # Score every (cap_slug, cache_slug, overlap) pair where
+            # overlap >= 1. Sort by overlap descending → biggest matches
+            # claim their cache first.
+            scored_pairs: list[tuple[int, str, str]] = []
             for cap in prereqs.capabilities:
                 cap_tokens = set(cap.slug.split("-")) - _STOPWORDS
-                best_overlap = 0
-                best_slug = ""
                 for cache_tokens, cache_slug in cache_token_index:
                     overlap = len(cap_tokens & cache_tokens)
-                    if overlap > best_overlap:
-                        best_overlap = overlap
-                        best_slug = cache_slug
-                if best_overlap >= 1 and best_slug:
-                    upsert_capability_resources(
-                        cap.slug, builder_id, capability_cache[best_slug]
-                    )
-                    any_match = True
+                    if overlap >= 1:
+                        scored_pairs.append((overlap, cap.slug, cache_slug))
+            scored_pairs.sort(reverse=True)
 
-            if not any_match and cache_token_index:
-                # Fallback: pick the cached search with the most results
-                # and attach it to every capability.
-                fallback_slug = max(
-                    capability_cache,
-                    key=lambda s: len(capability_cache[s]),
+            assigned_cap_to_cache: dict[str, str] = {}
+            used_cache_slugs: set[str] = set()
+            for _, cap_slug, cache_slug in scored_pairs:
+                if cap_slug in assigned_cap_to_cache:
+                    continue
+                if cache_slug in used_cache_slugs:
+                    continue
+                assigned_cap_to_cache[cap_slug] = cache_slug
+                used_cache_slugs.add(cache_slug)
+
+            # Step 3 fallback: orphan capabilities get the next-biggest
+            # cached search that nobody else claimed. Sorted by result
+            # count descending so the most useful unused result goes first.
+            unused_caches = sorted(
+                (s for s, links in capability_cache.items()
+                 if links and s not in used_cache_slugs),
+                key=lambda s: -len(capability_cache[s]),
+            )
+            for cap in prereqs.capabilities:
+                if cap.slug in assigned_cap_to_cache:
+                    continue
+                if not unused_caches:
+                    break
+                assigned_cap_to_cache[cap.slug] = unused_caches.pop(0)
+
+            for cap_slug, cache_slug in assigned_cap_to_cache.items():
+                upsert_capability_resources(
+                    cap_slug, builder_id, capability_cache[cache_slug]
                 )
-                fallback_links = capability_cache[fallback_slug]
-                if fallback_links:
-                    for cap in prereqs.capabilities:
-                        upsert_capability_resources(
-                            cap.slug, builder_id, fallback_links
-                        )
 
             trace.append(
                 {
